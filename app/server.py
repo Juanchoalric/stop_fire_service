@@ -144,8 +144,7 @@ def analyze():
         #    Key=str(1234)
         #)
         #s3 = boto3.resource('s3',
-        #                    aws_access_key_id="AKIAWNWEIN2MPD43CA7O",
-        #                    aws_secret_access_key="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")
+        #         ")
         s3.put_object(Body = image_string, Bucket=BUCKET_S3, Key=key)
         url = "%s%s" % (config.URL_S3, str(key))
         new_alert = FireImage(
