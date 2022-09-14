@@ -8,15 +8,11 @@ services:
               condition: service_healthy
         environment:
             MYSQL_PORT: "5432"
-        networks:
-            - backend
         command: mysql:5432
   mysql:
     image: mysql:5.7
     ports:
       - "3306:3306"
-    networks:
-      - backend
     volumes:
       - ./mysql-data:/var/lib/mysql
     environment:
@@ -42,7 +38,3 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: "12345678"
       MYSQL_DB: flaskmysql
-  
-networks:
-    backend:
-        driver: bridge
