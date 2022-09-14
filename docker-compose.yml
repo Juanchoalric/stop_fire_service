@@ -7,8 +7,8 @@ services:
             mysql:
               condition: service_healthy
         environment:
-            MYSQL_PORT: "5432"
-        command: mysql:5432
+            MYSQL_PORT: "3306"
+        command: mysql:3306
   mysql:
     image: mysql:5.7
     ports:
