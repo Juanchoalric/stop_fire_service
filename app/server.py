@@ -15,6 +15,7 @@ from flask import jsonify
 import boto3
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from sqlalchemy import update
 import base64
 import uuid
 import config
@@ -44,7 +45,7 @@ while no_host_available:
                 sys.exit()
         time.sleep(5)
 '''
-app.config['SQLALCHEMY_DATABASE_URI']= config.DATABASE_URI
+app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASS}@mysql:5432/flaskmysql"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
 
 db = SQLAlchemy(app)
@@ -53,6 +54,7 @@ ma = Marshmallow(app)
 
 class FireImage(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    key = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
@@ -61,8 +63,9 @@ class FireImage(db.Model):
     camera_type = db.Column(db.String(255), nullable=False)
     id_camera = db.Column(db.String(255), nullable=False)
     false_alarm = db.Column(db.Boolean, nullable=False)
+    zone = db.Column(db.Integer, nullable=False)
 
-    def __init__(self, image, longitude, latitude, prediction, taken_at, id_camera, camera_type, false_alarm):
+    def __init__(self, image, longitude, latitude, prediction, taken_at, id_camera, camera_type, false_alarm, zone, key):
         self.image = image
         self.longitude = longitude
         self.latitude = latitude
@@ -71,13 +74,15 @@ class FireImage(db.Model):
         self.id_camera = id_camera
         self.camera_type = camera_type
         self.false_alarm = false_alarm
+        self.zone = zone
+        self.key = key
 
 
 db.create_all()    
 
 class FireImageSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'image', 'longitude', 'latitude', 'taken_at', "id_camera", "camera_type", "false_alarm")
+        fields = ('id', 'image', 'longitude', 'latitude', 'taken_at', "id_camera", "camera_type", "false_alarm", "zone", "key")
 
 fire_image_schema = FireImageSchema()
 fire_images_schema = FireImageSchema(many=True)
@@ -125,7 +130,8 @@ def analyze():
     taken_at = request.form["taken_at"]
     id_camera = request.form["id_camera"]
     camera_type = request.form["camera_type"]
-    false_alarm = request.form["false_alarm"]
+    zone = request.form["zone"]
+    false_alarm = False
     taken_at = datetime.strptime(taken_at, '%d/%m/%y %H:%M:%S')
     #img = img_data['file']
     #file = Image.open(img_data.filename)
@@ -154,8 +160,10 @@ def analyze():
             prediction=prediction, 
             taken_at=taken_at, 
             camera_type=camera_type,
-            false_alarm=bool(false_alarm),
+            false_alarm=false_alarm,
             id_camera=id_camera,
+            zone=zone,
+            key=key
             )
         db.session.add(new_alert)
         db.session.commit()
@@ -207,8 +215,8 @@ class NumpyArrayEncoder(JSONEncoder):
 
 @app.route('/alerts', methods=['GET'])
 def get_all_fire_alerts():
-    result = s3.list_objects(Bucket=BUCKET_S3)
-    all_alerts = FireImage.query.all()
+    #result = s3.list_objects(Bucket=BUCKET_S3)
+    all_alerts = FireImage.query.filter_by(false_alarm=0).all()
     all_alerts = fire_images_schema.dump(all_alerts)
     retrieve_images = []
     """
@@ -234,6 +242,18 @@ def get_all_fire_alerts():
 
     return jsonify({"data":all_alerts})
     #return jsonify({'result': contents})
+
+@app.route('/alert/', methods=['PUT'])
+def false_positive_change():
+    id = request.args.get('id')
+    update = FireImage.query.filter_by(id=id).first()
+    update.false_alarm = 1
+    db.session.commit()
+    #alert = update(FireImage)
+    #alert = alert.values({"false_alarm": 0})
+    #alert = alert.where(FireImage.id == id)
+    #db.session.execute(alert)
+    return jsonify({"result": "updated to false positive"})
 
 
 if __name__ == '__main__':
