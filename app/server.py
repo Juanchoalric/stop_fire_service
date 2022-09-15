@@ -45,7 +45,7 @@ while no_host_available:
                 sys.exit()
         time.sleep(5)
 '''
-app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASS}@5432/flaskmysql"
+app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASSWORD}@{config.MYSQL_HOST}:3306/flaskmysql"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
 
 db = SQLAlchemy(app)
