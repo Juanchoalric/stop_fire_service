@@ -32,8 +32,8 @@ services:
       - 5000:5000
     command: python app/server.py
     
-    #environment:
-    #  MYSQL_HOST: mysql
-    #  MYSQL_USER: root
-    #  MYSQL_PASSWORD: "12345678"
-    #  MYSQL_DB: flaskmysql
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DB: ${MYSQL_DB}

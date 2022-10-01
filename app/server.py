@@ -13,6 +13,7 @@ from fastai.vision import *
 import pymysql
 from flask import jsonify
 import boto3
+import io
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from sqlalchemy import update
@@ -45,7 +46,7 @@ while no_host_available:
                 sys.exit()
         time.sleep(5)
 '''
-app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASSWORD}@{config.MYSQL_HOST}:3306/flaskmysql"
+app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASSWORD}@localhost:3306/flaskmysql"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
 
 db = SQLAlchemy(app)
@@ -113,6 +114,19 @@ def image_to_byte_array(image: Image) -> bytes:
   imgByteArr = imgByteArr.getvalue()
   return imgByteArr
 
+def upload_file_to_s3(file, bucket_name):
+    """
+    Docs: http://boto3.readthedocs.io/en/latest/guide/s3.html
+    """
+    try:
+        s3.upload_fileobj(
+            file,
+            bucket_name,
+            file.filename
+        )
+    except Exception as e:
+        print("Something Happened: ", e)
+
 @app.route("/", methods=["GET"])
 def index():
     return jsonify({'result': "Fire detection app"})
@@ -120,38 +134,27 @@ def index():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    #img_data = await request.form()
     latitude = request.form["latitude"]
     longitude = request.form["longitude"]
-    img_data = request.files['file']
-    type_img = type(img_data)
-    image_string = base64.b64encode(img_data.read())
-    #img_type = type(image_string)
+    img_data = request.files['file'].read()
+    img_data_ = request.files['file'].filename
+    print(img_data_)
     taken_at = request.form["taken_at"]
     id_camera = request.form["id_camera"]
     camera_type = request.form["camera_type"]
     zone = request.form["zone"]
     false_alarm = False
     taken_at = datetime.strptime(taken_at, '%d/%m/%y %H:%M:%S')
-    #img = img_data['file']
-    #file = Image.open(img_data.filename)
-    image = PILImage.create(img_data)
-    #img_byte = image_to_byte_array(image=image)
-    #img_file = secure_filename(img_data.filename)
-    #img_data.save(img_data)
-    #img_bytes = img_data.read()
-    #file = Image.open(img_data)
-    key = str(uuid.uuid1())
+    image = PILImage.create(io.BytesIO(img_data))
+    extension = img_data_.split(".")[-1]
+    key = str(uuid.uuid1())+"." + extension
     prediction = learn.predict(image)[0]
     if prediction == "fire":
-        #s3.upload_file(
-        #    Bucket=BUCKET_S3,
-        #    Filename=str(img),
-        #    Key=str(1234)
-        #)
-        #s3 = boto3.resource('s3',
-        #         ")
-        s3.put_object(Body = image_string, Bucket=BUCKET_S3, Key=key)
+        s3.upload_fileobj(
+            io.BytesIO(img_data),
+            BUCKET_S3,
+            key,
+        )
         url = "%s%s" % (config.URL_S3, str(key))
         new_alert = FireImage(
             image=url, 
@@ -186,11 +189,6 @@ def read_image_from_s3(bucket, key, region_name=config.REGION_S3):
         Bucket name
     key : string
         Path in s3
-
-    Returns
-    -------
-    np array
-        Image array
     """
     s3 = boto3.resource('s3',
                 aws_access_key_id=config.AWS_ACCESS_KEY,
@@ -258,4 +256,4 @@ def false_positive_change():
 
 if __name__ == '__main__':
     #if 'serve' in sys.argv:
-    app.run(port=5000)
+    app.run(port=5000, debug=True)
