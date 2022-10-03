@@ -46,7 +46,7 @@ while no_host_available:
                 sys.exit()
         time.sleep(5)
 '''
-app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASSWORD}@localhost:3306/flaskmysql"
+app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASSWORD}@{config.MYSQL_HOST}:3306/flaskmysql"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
 
 db = SQLAlchemy(app)
@@ -243,8 +243,9 @@ def get_all_fire_alerts():
 
 @app.route('/alert/', methods=['PUT'])
 def false_positive_change():
-    id = request.args.get('id')
-    update = FireImage.query.filter_by(id=id).first()
+    req = request.args.keys()
+    key = request.args.get('key')
+    update = FireImage.query.filter_by(key=key).first()
     update.false_alarm = 1
     db.session.commit()
     #alert = update(FireImage)
@@ -256,4 +257,4 @@ def false_positive_change():
 
 if __name__ == '__main__':
     #if 'serve' in sys.argv:
-    app.run(port=5000, debug=True)
+    app.run(port=5000, debug=False)
