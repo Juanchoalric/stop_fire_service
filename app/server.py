@@ -21,7 +21,6 @@ import base64
 import uuid
 import config
 
-print(config.DATABASE_URI)
 BUCKET_S3 = config.BUCKET_S3
 
 s3 = boto3.client(
