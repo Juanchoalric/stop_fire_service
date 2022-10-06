@@ -7,8 +7,6 @@ COPY requirements.txt .
 
 RUN pip install --upgrade -r requirements.txt
 
-COPY app app/
-
 EXPOSE 5000
 
-CMD ["python", "app/server.py", "serve"]
+ENTRYPOINT ["python"]

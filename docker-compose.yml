@@ -30,10 +30,14 @@ services:
         condition: service_completed_successfully
     ports:
       - 5000:5000
-    command: python app/server.py
+    command: /flask/app/server.py
     
     environment:
       MYSQL_HOST: ${MYSQL_HOST}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DB: ${MYSQL_DB}
+    volumes:
+      - ./:/flask
+volumes:
+  mysql-data:

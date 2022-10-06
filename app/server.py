@@ -6,6 +6,7 @@ from flask import Flask
 from werkzeug.utils import secure_filename
 from PIL import Image
 from fastai import *
+import pathlib
 from flask import request
 from fastai.vision.all import *
 from fastai.imports import *
@@ -19,33 +20,27 @@ from flask_marshmallow import Marshmallow
 from sqlalchemy import update
 import base64
 import uuid
-import config
+from decouple import config
 
-BUCKET_S3 = config.BUCKET_S3
+BUCKET_S3 = config("BUCKET_S3")
+AWS_ACCESS_KEY = config("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = config("AWS_SECRET_KEY")
+URL_S3 = config("URL_S3")
+REGION_S3 = config("REGION_S3")
+REGION_S3_SOUTH = config("REGION_S3_SOUTH")
+MYSQL_USER = config("MYSQL_USER")
+MYSQL_PASSWORD = config("MYSQL_PASSWORD")
+MYSQL_HOST = config("MYSQL_HOST")
 
 s3 = boto3.client(
     "s3",
-    aws_access_key_id=config.AWS_ACCESS_KEY,
-    aws_secret_access_key=config.AWS_SECRET_KEY
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY
 )
 
 app = Flask(__name__)
 
-MAX_RETRIES_NUM = 10
-no_host_available = True
-retry_tries = 0
-'''
-while no_host_available:
-    try:
-        app.config['SQLALCHEMY_DATABASE_URI']= config.DATABASE_URI
-        break
-    except:
-        retry_tries += 1
-        if retry_tries == MAX_RETRIES_NUM:
-                sys.exit()
-        time.sleep(5)
-'''
-app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{config.MYSQL_USER}:{config.MYSQL_PASSWORD}@{config.MYSQL_HOST}:3306/flaskmysql"
+app.config['SQLALCHEMY_DATABASE_URI']= f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:3306/flaskmysql"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
 
 db = SQLAlchemy(app)
@@ -89,7 +84,7 @@ fire_images_schema = FireImageSchema(many=True)
 
 def setup_learner():
     #await download_file(export_file_url, path / export_file_name)
-    path = "./app/models/model_convnext_small_in22k_version_1.pkl"
+    path = f"{pathlib.Path(__file__).parent.resolve()}" + "/models/model_convnext_small_in22k_version_1.pkl"
     try:
         learn = load_learner(path)
         return learn
@@ -154,7 +149,7 @@ def analyze():
             BUCKET_S3,
             key,
         )
-        url = "%s%s" % (config.URL_S3, str(key))
+        url = "%s%s" % (URL_S3, str(key))
         new_alert = FireImage(
             image=url, 
             latitude=latitude, 
@@ -179,7 +174,7 @@ def new_read_image_from_s3():
         print(object_summary)
 
 
-def read_image_from_s3(bucket, key, region_name=config.REGION_S3):
+def read_image_from_s3(bucket, key, region_name=REGION_S3):
     """Load image file from s3.
 
     Parameters
@@ -190,9 +185,9 @@ def read_image_from_s3(bucket, key, region_name=config.REGION_S3):
         Path in s3
     """
     s3 = boto3.resource('s3',
-                aws_access_key_id=config.AWS_ACCESS_KEY,
-                aws_secret_access_key=config.AWS_SECRET_KEY, 
-                region_name=config.REGION_S3_SOUTH)
+                aws_access_key_id=AWS_ACCESS_KEY,
+                aws_secret_access_key=AWS_SECRET_KEY, 
+                region_name=REGION_S3_SOUTH)
     bucket = s3.Bucket(bucket)
     object = bucket.Object(key)
     response = object.get()
@@ -256,4 +251,4 @@ def false_positive_change():
 
 if __name__ == '__main__':
     #if 'serve' in sys.argv:
-    app.run(port=5000, debug=False)
+    app.run(port=5000, debug=False, host="0.0.0.0")
