@@ -67,8 +67,27 @@ class FireImage(db.Model):
         self.zone = zone
         self.key = key
 
+class Camera(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    zone = db.Column(db.String(255), nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    camera_type = db.Column(db.String(255), nullable=False)
+    id_camera = db.Column(db.String(255), nullable=False)
 
-db.create_all()    
+    def __init__(self, longitude, latitude, id_camera, camera_type, zone):
+        self.longitude = longitude
+        self.latitude = latitude
+        self.id_camera = id_camera
+        self.camera_type = camera_type
+        self.zone = zone
+
+
+db.create_all()
+
+class CameraSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'longitude', 'latitude', "id_camera", "camera_type", "zone")
 
 class FireImageSchema(ma.Schema):
     class Meta:
@@ -76,6 +95,8 @@ class FireImageSchema(ma.Schema):
 
 fire_image_schema = FireImageSchema()
 fire_images_schema = FireImageSchema(many=True)
+camera_schema = CameraSchema()
+cameras_schema = CameraSchema(many=True)
 
 def setup_learner():
     #await download_file(export_file_url, path / export_file_name)
@@ -144,6 +165,31 @@ def analyze():
 
     return jsonify({'result': str(prediction)})
 
+@app.route('/camera', methods=['POST'])
+def camera():
+    latitude = request.form["latitude"]
+    longitude = request.form["longitude"]
+    id_camera = request.form["id_camera"]
+    camera_type = request.form["camera_type"]
+    zone = request.form["zone"]
+    try:
+        new_alert = Camera( 
+                latitude=latitude, 
+                longitude=longitude, 
+                camera_type=camera_type,
+                id_camera=id_camera,
+                zone=zone,
+                )
+
+        db.session.add(new_alert)
+        db.session.commit()
+
+        return jsonify({'result': "camera created"})
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'result': e})
+
+
 
 @app.route('/alerts', methods=['GET'])
 def get_all_fire_alerts():
@@ -152,6 +198,13 @@ def get_all_fire_alerts():
 
     return jsonify({"data":all_alerts})
 
+
+@app.route('/cameras', methods=['GET'])
+def get_cameras():
+    cameras = Camera.query.all()
+    cameras = cameras_schema.dump(cameras)
+
+    return jsonify({"data": cameras})
 
 @app.route('/alert/', methods=['PUT'])
 def false_positive_change():
