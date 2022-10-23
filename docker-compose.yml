@@ -35,7 +35,7 @@ services:
         --timeout 120
         --access-logfile -
         --reload
-        "user.app:create_app()
+        "app.server:app
     #command: /flask/app/server.py
 
     
