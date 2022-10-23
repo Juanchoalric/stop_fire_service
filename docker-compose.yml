@@ -30,7 +30,14 @@ services:
         condition: service_completed_successfully
     ports:
       - 5000:5000
-    command: /flask/app/server.py
+    command: >
+      gunicorn -b 0.0.0.0:5000
+        --timeout 120
+        --access-logfile -
+        --reload
+        "user.app:create_app()
+    #command: /flask/app/server.py
+
     
     environment:
       MYSQL_HOST: ${MYSQL_HOST}
