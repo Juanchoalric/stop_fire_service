@@ -9,6 +9,4 @@ RUN pip install --upgrade -r requirements.txt --no-cache-dir
 
 EXPOSE 5000
 
-CMD gunicorn -b 0.0.0.0:5000 --timeout 120 --access-logfile - "user.app:create_app()
-
-#ENTRYPOINT ["gunicorn"]
+ENTRYPOINT ["python"]

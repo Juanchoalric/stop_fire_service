@@ -145,6 +145,7 @@ def analyze():
             )
         except Exception as e:
             print("Something Happened when uploading the image: ", e)
+            return jsonify({"error": "server error"}), 500
         url = "%s%s" % (URL_S3, str(key))
 
         new_alert = FireImage(
@@ -162,7 +163,6 @@ def analyze():
 
         db.session.add(new_alert)
         db.session.commit()
-
     return jsonify({'result': str(prediction)})
 
 @app.route('/camera', methods=['POST'])
@@ -193,16 +193,21 @@ def camera():
 
 @app.route('/alerts', methods=['GET'])
 def get_all_fire_alerts():
-    all_alerts = FireImage.query.filter_by(false_alarm=0).all()
-    all_alerts = fire_images_schema.dump(all_alerts)
-
+    try:
+        all_alerts = FireImage.query.filter_by(false_alarm=0).all()
+        all_alerts = fire_images_schema.dump(all_alerts)
+    except:
+        return jsonify({"error": "server error"}), 500
     return jsonify({"data":all_alerts})
 
 
 @app.route('/cameras', methods=['GET'])
 def get_cameras():
-    cameras = Camera.query.all()
-    cameras = cameras_schema.dump(cameras)
+    try:
+        cameras = Camera.query.all()
+        cameras = cameras_schema.dump(cameras)
+    except:
+        return jsonify({"error": "server error"}), 500
 
     return jsonify({"data": cameras})
 
