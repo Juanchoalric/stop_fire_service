@@ -17,8 +17,6 @@ marshmallow-sqlalchemy==0.28.0
 PyMySQL==1.0.2
 python-dotenv==0.20.0
 python-decouple==3.6
-gunicorn
-
 
 
 
